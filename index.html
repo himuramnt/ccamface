@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Foto</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        #video {
+            width: 100%;
+            max-width: 540px;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+        #canvas {
+            display: none;
+        }
+        #photo {
+            margin-top: 20px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Captura de Foto</h1>
+    <video id="video" autoplay></video>
+    <button id="capture">Capturar Foto</button>
+    <canvas id="canvas"></canvas>
+    <img id="photo" src="" alt="Imagem capturada">
+
+    <script>
+        // Acessando a câmera do dispositivo
+        const video = document.getElementById('video');
+        const captureButton = document.getElementById('capture');
+        const canvas = document.getElementById('canvas');
+        const photo = document.getElementById('photo');
+
+        // Função para iniciar a captura da câmera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }  // Uso da câmera traseira em dispositivos móveis
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Erro ao acessar a câmera: ", err);
+            }
+        }
+
+        // Função para capturar a imagem e processá-la
+        captureButton.addEventListener('click', () => {
+            // Desenhar no canvas a imagem capturada do vídeo
+            canvas.width = 540;  // Definindo a largura para 540px
+            canvas.height = 1080;  // Definindo a altura para 1080px
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, 540, 1080);  // Ajustando o tamanho da imagem no canvas
+
+            // Redimensionando para 500x500 e comprimindo
+            const img = canvas.toDataURL('image/jpeg', 0.7);  // Formato JPEG e qualidade de 0.7 (70%)
+
+            // Função para verificar o tamanho da imagem e ajustá-la
+            resizeAndCompressImage(img);
+        });
+
+        // Função para redimensionar a imagem e verificar o tamanho
+        function resizeAndCompressImage(imgDataUrl) {
+            const img = new Image();
+            img.onload = function() {
+                const canvasTemp = document.createElement('canvas');
+                const ctxTemp = canvasTemp.getContext('2d');
+
+                // Redimensionando a imagem para 500x500
+                const size = 500;
+                canvasTemp.width = size;
+                canvasTemp.height = size;
+                ctxTemp.drawImage(img, 0, 0, size, size);
+
+                // Convertendo para base64 JPG
+                const compressedDataUrl = canvasTemp.toDataURL('image/jpeg', 0.7);  // Qualidade 70%
+
+                // Verificar o tamanho da imagem
+                const byteSize = (compressedDataUrl.length * 3 / 4) - (compressedDataUrl.indexOf(',') + 1);
+                if (byteSize <= 100 * 1024) {  // 100KB
+                    photo.src = compressedDataUrl;  // Exibir a imagem capturada
+                    console.log(`Imagem capturada com sucesso! Tamanho: ${byteSize / 1024} KB`);
+                } else {
+                    alert('A imagem é muito grande. Tente novamente.');
+                }
+            };
+
+            img.src = imgDataUrl;
+        }
+
+        // Iniciar a câmera ao carregar a página
+        window.onload = startCamera;
+    </script>
+
+</body>
+</html>
